@@ -1,83 +1,123 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  Typography,
+  LinearProgress,
+  Paper,
+} from '@mui/material';
 
-export default function UploadVideo() {
-  const [videoFile, setVideoFile] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const [previewURL, setPreviewURL] = useState(null);
+function UploadVideo() {
+  const [video, setVideo] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = (file) => {
+    if (file && file.type.startsWith('video/')) {
+      setVideo(file);
+    }
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type.startsWith('video/')) {
-      setVideoFile(file);
-      setPreviewURL(URL.createObjectURL(file));
-      setUploadStatus('');
-    } else {
-      setUploadStatus('Please select a valid video file.');
-      setVideoFile(null);
-      setPreviewURL(null);
-    }
+    handleFile(file);
   };
 
-  const handleUpload = async () => {
-    if (!videoFile) {
-      setUploadStatus('No video selected.');
-      return;
-    }
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
 
-    const formData = new FormData();
-    formData.append('video', videoFile);
+    const file = e.dataTransfer.files[0];
+    handleFile(file);
+  }, []);
 
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleUpload = () => {
+    if (!video) return;
+
+    setUploading(true);
+    setProgress(0);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setUploading(false);
+          alert('Upload complete!');
+          return 100;
+        }
+        return prev + 10;
       });
-
-      if (response.ok) {
-        setUploadStatus('Upload successful!');
-      } else {
-        const err = await response.text();
-        setUploadStatus(`Upload failed: ${err}`);
-      }
-    } catch (error) {
-      setUploadStatus(`Error: ${error.message}`);
-    }
+    }, 400);
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Upload a Video</h2>
+    <Container maxWidth="sm" sx={{ mt: 6 }}>
+      <Typography variant="h4" align="center" gutterBottom>
+        Upload Your Video
+      </Typography>
 
-      <input type="file" accept="video/*" onChange={handleFileChange} />
-      
-      {previewURL && (
-        <div style={styles.preview}>
-          <video src={previewURL} controls width="480" />
-        </div>
+      <Paper
+        elevation={isDragging ? 6 : 3}
+        sx={{
+          border: isDragging ? '2px dashed #1976d2' : '2px dashed #ccc',
+          padding: 4,
+          textAlign: 'center',
+          backgroundColor: isDragging ? '#e3f2fd' : 'inherit',
+          transition: 'background-color 0.2s ease',
+          cursor: 'pointer',
+        }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => document.getElementById('video-upload').click()}
+      >
+        <input
+          type="file"
+          id="video-upload"
+          accept="video/*"
+          hidden
+          onChange={handleFileChange}
+        />
+        <Typography variant="body1">
+          {video ? video.name : 'Drag & drop your video here or click to select'}
+        </Typography>
+      </Paper>
+
+      {uploading && (
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{ mt: 3 }}
+        />
       )}
 
-      <button onClick={handleUpload} style={styles.button}>
-        Upload
-      </button>
-
-      {uploadStatus && <p>{uploadStatus}</p>}
-    </div>
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleUpload}
+          disabled={!video || uploading}
+        >
+          {uploading ? 'Uploading...' : 'Upload Video'}
+        </Button>
+      </Box>
+    </Container>
   );
 }
 
-const styles = {
-  container: {
-    padding: '2rem',
-    maxWidth: '600px',
-    margin: '0 auto',
-    textAlign: 'center',
-  },
-  preview: {
-    marginTop: '1rem',
-  },
-  button: {
-    marginTop: '1rem',
-    padding: '0.5rem 1rem',
-    fontSize: '1rem',
-  },
-};
+export default UploadVideo;

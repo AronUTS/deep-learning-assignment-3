@@ -1,63 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Container,
+  LinearProgress,
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+
+// Dummy function to simulate API call for existing tasks
+const fetchTasks = () => {
+  return Promise.resolve([
+    {
+      id: 1,
+      name: 'video1.mp4',
+      status: 'processing',
+      progress: 70,
+    },
+    {
+      id: 2,
+      name: 'video2.mp4',
+      status: 'completed',
+      progress: 100,
+    },
+    {
+      id: 3,
+      name: 'video3.mp4',
+      status: 'queued',
+      progress: 0,
+    },
+  ]);
+};
 
 export default function UploadTasks() {
-  const [taskFile, setTaskFile] = useState(null);
-  const [status, setStatus] = useState('');
+  const [statusMsg, setStatusMsg] = useState('');
+  const [tasks, setTasks] = useState([]);
+  const navigate = useNavigate();
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setTaskFile(file);
-      setStatus('');
-    }
-  };
+  useEffect(() => {
+    fetchTasks().then((data) => setTasks(data));
+  }, []);
 
-  const handleUpload = async () => {
-    if (!taskFile) {
-      setStatus('No file selected.');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('tasks', taskFile);
-
-    try {
-      const response = await fetch('/api/upload_tasks', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        setStatus('Tasks uploaded successfully.');
-      } else {
-        const err = await response.text();
-        setStatus(`Upload failed: ${err}`);
-      }
-    } catch (error) {
-      setStatus(`Error: ${error.message}`);
+  const handleCardClick = (task) => {
+    if (task.status === 'completed') {
+      navigate(`/analysis/${task.id}`);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Upload Task List</h2>
-      <input type="file" accept=".csv,.json" onChange={handleFileChange} />
-      <button onClick={handleUpload} style={styles.button}>Upload</button>
-      {status && <p>{status}</p>}
-    </div>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Uploaded Task List
+        </Typography>
+        {statusMsg && (
+          <Typography sx={{ mt: 2 }} color="textSecondary">
+            {statusMsg}
+          </Typography>
+        )}
+      </Box>
+
+      <Typography variant="h5" gutterBottom>
+        Existing Tasks
+      </Typography>
+
+      <Grid container spacing={3}>
+        {tasks.map((task) => (
+          <Grid item xs={12} sm={6} md={4} key={task.id}>
+            <Card
+              onClick={() => handleCardClick(task)}
+              sx={{
+                height: '100%',
+                cursor: task.status === 'completed' ? 'pointer' : 'default',
+                '&:hover': {
+                  boxShadow:
+                    task.status === 'completed' ? 6 : undefined,
+                },
+              }}
+            >
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {task.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Status: {task.status}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={task.progress}
+                  sx={{ mt: 1 }}
+                  color={task.status === 'completed' ? 'success' : 'primary'}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 }
-
-const styles = {
-  container: {
-    padding: '2rem',
-    maxWidth: '600px',
-    margin: '0 auto',
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: '1rem',
-    padding: '0.5rem 1rem',
-    fontSize: '1rem',
-  },
-};

@@ -1,6 +1,27 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom'; // ✅ Import this
+import {
+  Box,
+  Typography,
+  Container,
+  CircularProgress,
+  Card,
+  CardContent,
+  Grid,
+} from '@mui/material';
+
+const mockResponse = {
+  video_url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+  metrics: {
+    'Detected Objects': 42,
+    'Average Confidence': '91%',
+    'Processing Time': '2.3s',
+    'Frames Processed': 120,
+  },
+};
 
 export default function VideoAnalysis() {
+  const { id } = useParams(); // ✅ Get the ID
   const [videoUrl, setVideoUrl] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [status, setStatus] = useState('Loading...');
@@ -8,12 +29,9 @@ export default function VideoAnalysis() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const response = await fetch('/api/video_analysis');
-        if (!response.ok) {
-          throw new Error('Failed to fetch analysis');
-        }
-
-        const data = await response.json();
+        // Simulate delay or replace with real API call like `/api/video_analysis/${id}`
+        await new Promise((res) => setTimeout(res, 500));
+        const data = mockResponse;
         setVideoUrl(data.video_url);
         setMetrics(data.metrics);
         setStatus('');
@@ -23,40 +41,56 @@ export default function VideoAnalysis() {
     };
 
     fetchAnalysis();
-  }, []);
+  }, [id]);
 
   return (
-    <div style={styles.container}>
-      <h2>Video Analysis Results</h2>
-      {status && <p>{status}</p>}
+    <Container maxWidth="md" sx={{ mt: 5 }}>
+      <Typography variant="h4" align="center" gutterBottom>
+        Video Analysis – ID {id}
+      </Typography>
+
+      {status && (
+        <Box textAlign="center" sx={{ mt: 3 }}>
+          {status.startsWith('Loading') ? (
+            <CircularProgress />
+          ) : (
+            <Typography color="error">{status}</Typography>
+          )}
+        </Box>
+      )}
 
       {videoUrl && (
-        <video controls width="480" src={videoUrl} style={{ marginTop: '1rem' }} />
+        <Box textAlign="center" sx={{ mt: 4 }}>
+          <video
+            controls
+            width="100%"
+            style={{ maxWidth: '720px', borderRadius: 8 }}
+            src={videoUrl}
+          />
+        </Box>
       )}
 
       {metrics && (
-        <div style={styles.metrics}>
-          <h3>Metrics</h3>
-          <ul>
+        <Box sx={{ mt: 5 }}>
+          <Typography variant="h5" gutterBottom>
+            Analysis Metrics
+          </Typography>
+          <Grid container spacing={2}>
             {Object.entries(metrics).map(([key, value]) => (
-              <li key={key}><strong>{key}:</strong> {value}</li>
+              <Grid item xs={12} sm={6} key={key}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" color="text.secondary">
+                      {key}
+                    </Typography>
+                    <Typography variant="h6">{value}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             ))}
-          </ul>
-        </div>
+          </Grid>
+        </Box>
       )}
-    </div>
+    </Container>
   );
 }
-
-const styles = {
-  container: {
-    padding: '2rem',
-    maxWidth: '700px',
-    margin: '0 auto',
-    textAlign: 'center',
-  },
-  metrics: {
-    textAlign: 'left',
-    marginTop: '1.5rem',
-  },
-};
