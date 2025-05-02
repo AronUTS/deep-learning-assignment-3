@@ -1,22 +1,22 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 import os
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# API endpoint routes defined here
+# ---------------------
+# API Routes (prefixed with /api)
+# ---------------------
 @app.route('/api/hello')
 def hello():
-    return {"message": "Hello from Flask!"}
+    return jsonify(message="Hello from Flask!")
 
-# Serve static files and React routes
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    else:
-        # If the path doesn't match a file, serve React index.html
-        return send_from_directory(app.static_folder, 'index.html')
+
+# ---------------------
+# Catch all error handler defaults to react app default route (homepage) for any non defined route.
+# ---------------------
+@app.errorhandler(404)   
+def not_found(e):   
+  return app.send_static_file('index.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
