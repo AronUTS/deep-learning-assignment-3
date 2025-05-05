@@ -8,6 +8,8 @@ This project is created to build a livestock monitoring and tracking app that ru
 │   └── app.py
 ├── frontend/               # React frontend (Vite)
 │   └── src/
+├── model_training/         # Python jupyter notebook for model training in cloud GPUs
+│   └── agritrack_frcnn_model_training.ipynb
 ├── requirements.txt        # Python dependencies
 ├── Dockerfile              # Multi-stage build
 ├── docker-compose.yml
