@@ -1,33 +1,46 @@
 import React from 'react';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { CssBaseline, ThemeProvider, Box } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import theme from './theme';
+import Home from './pages/Home';
 import Navbar from './components/Navbar';
 import UploadVideo from './pages/UploadVideo';
-import UploadTasks from './pages/UploadTasks';  // Assume you have this component
-import VideoAnalysis from './pages/VideoAnalysis';  // Assume you have this component
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#f50057',
-    },
-  },
-});
+import UploadTasks from './pages/UploadTasks';
+import VideoAnalysis from './pages/VideoAnalysis';
+import Footer from './components/Footer';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<UploadVideo />} />
-          <Route path="/tasks" element={<UploadTasks />} />
-          <Route path="/analysis/:id" element={<VideoAnalysis />} />
-        </Routes>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '100vh',
+            backgroundColor: theme.palette.background.default,
+          }}
+        >
+          <Navbar />
+          <Box
+            component="main"
+            sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: theme.palette.background.default,
+            }}
+          >
+            <Routes>
+            <Route path="/" element={<Home />} />
+              <Route path="/upload" element={<UploadVideo />} />
+              <Route path="/tasks" element={<UploadTasks />} />
+              <Route path="/analysis/:id" element={<VideoAnalysis />} />
+            </Routes>
+          </Box>
+          <Footer />
+        </Box>
       </Router>
     </ThemeProvider>
   );

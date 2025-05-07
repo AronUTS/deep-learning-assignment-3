@@ -6,6 +6,8 @@ import {
   Typography,
   LinearProgress,
   Paper,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 
 function UploadVideo() {
@@ -13,6 +15,8 @@ function UploadVideo() {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleFile = (file) => {
     if (file && file.type.startsWith('video/')) {
@@ -66,20 +70,27 @@ function UploadVideo() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 6 }}>
-      <Typography variant="h4" align="center" gutterBottom>
-        Upload Your Video
+    <Container maxWidth="lg" sx={{ mt: 6 }}>
+      <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
+        New Video Upload
       </Typography>
 
       <Paper
         elevation={isDragging ? 6 : 3}
         sx={{
           border: isDragging ? '2px dashed #1976d2' : '2px dashed #ccc',
-          padding: 4,
+          padding: 6, // Increased padding for larger box
           textAlign: 'center',
           backgroundColor: isDragging ? '#e3f2fd' : 'inherit',
           transition: 'background-color 0.2s ease',
           cursor: 'pointer',
+          width: '100%', // Ensure the box takes up full available width
+          height: isMobile ? 300 : 600, // Set fixed height for the video box (adjust as needed)
+          maxWidth: '100%', // Make sure the Paper doesn't exceed the container width
+          margin: '0 auto', // Center the paper horizontally
+          display: 'flex', // Flexbox to align contents in the center
+          justifyContent: 'center', // Center content horizontally
+          alignItems: 'center', // Center content vertically
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
