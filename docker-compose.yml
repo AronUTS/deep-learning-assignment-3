@@ -6,9 +6,22 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - DATABASE_URL=postgresql://flask_user:flask_password@db:5432/flask_db
     restart: unless-stopped
-    #### Uncomment to debug container ####
-    # command: ["/bin/bash"] 
-    # stdin_open: true         # Keep stdin open for interactive terminal
-    # tty: true                # Allocate a pseudo-TTY for the shell
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: flask_user
+      POSTGRES_PASSWORD: flask_password
+      POSTGRES_DB: flask_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

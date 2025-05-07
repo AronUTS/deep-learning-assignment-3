@@ -5,7 +5,7 @@ This project is created to build a livestock monitoring and tracking app that ru
 ## Project Structure
 ```
 ├── backend/                # Flask backend (serves static frontend + API)
-│   └── app.py
+│   └── app/
 ├── frontend/               # React frontend (Vite)
 │   └── src/
 ├── model_training/         # Python jupyter notebook for model training in cloud GPUs
@@ -20,13 +20,14 @@ This project is created to build a livestock monitoring and tracking app that ru
 ## 🧪 Run Project Locally (Without Docker)
 
 ### 🔹 1. Run Flask Backend
+### Outdated, additional commands required to setup database.. coming soon
 
 ```
 cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r ../requirements.txt
-python app.py
+python wsygi.py
 ```
 
 ### 🔹 2. Run React Frontend
@@ -40,6 +41,6 @@ npm run dev
 ## 🧪 Run In Docker Container
 
 ```
-docker-compose build --no-cache
+docker-compose build
 docker-compose up
 ```

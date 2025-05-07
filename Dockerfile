@@ -10,6 +10,13 @@ RUN npm run build
 # Stage 2: Setup Flask backend
 FROM python:3.11-slim
 
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY backend/ ./backend/
 COPY requirements.txt .
@@ -22,4 +29,4 @@ COPY --from=frontend-builder /app/dist/ ./backend/static/
 EXPOSE 5000
 
 # Run flask app
-CMD ["python", "backend/app.py"]
+CMD ["python", "backend/wsgi.py"]
