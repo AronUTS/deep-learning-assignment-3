@@ -1,0 +1,26 @@
+from datetime import datetime
+from enum import Enum
+from ..extensions import db
+
+class StatusEnum(Enum):
+    QUEUED = "QUEUED"
+    PROCESSING = "PROCESSING"
+    COMPLETE = "COMPLETE"
+
+class ProcessingQueue(db.Model):
+    __tablename__ = 'processing_queue'
+    __table_args__ = {'schema': 'agritrack_app'}
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    file_name = db.Column(db.String, nullable=False)
+    upload_timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    status = db.Column(db.String, nullable=False)  # Replaced SqlEnum with String
+    format = db.Column(db.String, nullable=False)  # e.g., ".mp4"
+    duration = db.Column(db.Integer, nullable=True)  # in seconds
+    size = db.Column(db.Float, nullable=True)  # in megabytes
+    resolution = db.Column(db.String, nullable=True)  # e.g., "1920x1080"
+    processing_time = db.Column(db.Integer, nullable=True)  # in seconds
+    processed_frames = db.Column(db.Integer, nullable=True)
+    thumbnail_path = db.Column(db.String, nullable=True)
+    detected_objects = db.Column(db.Integer, nullable=True)
+    average_precision = db.Column(db.Float, nullable=True)

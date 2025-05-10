@@ -44,3 +44,33 @@ npm run dev
 docker-compose build
 docker-compose up
 ```
+
+On first time build only you will need to run flask database migrations to create tables from within container.
+
+```
+docker exec -it deep-learning-assignment-3-web-1 /bin/bash
+cd backend
+flask db init
+flask db migrate -m "Add processing_queue table"
+flask db upgrade
+```
+
+### Access database 
+
+To access the postgres database in the docker container run the below.
+
+```
+docker exec -it deep-learning-assignment-3-db-1 /bin/bash
+psql -U flask_user -d flask_db
+*Run any sql statement*
+SELECT 1 FROM agritrack_app.processing_queue
+```
+
+### Clear local docker environment
+
+To drop containers and volumes, will restore database
+
+```
+docker compose down --volumes --remove-orphans
+docker volume prune -f
+```
