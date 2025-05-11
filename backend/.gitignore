@@ -1,1 +1,2 @@
-videos/*
+app/videos/*
+app/ml_models/*
