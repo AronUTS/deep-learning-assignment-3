@@ -11,6 +11,21 @@ from torchvision import transforms
 import os
 import numpy as np
 from norfair import Detection, Tracker
+import gdown
+
+# If model doesnt exist in container, load it from google drive
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "ml_models/checkpoint_fasterRcnn_customhead_customdataset_epoch_3.pth")
+GDRIVE_FILE_ID = "1msshCMWch0CuzKc4uo_s2F4h4yVHHU4y"
+GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
+
+if not os.path.exists(MODEL_PATH):
+    os.makedirs(os.path.join(BASE_DIR, "ml_models"), exist_ok=True)
+    print("Downloading model checkpoint from Google Drive...")
+    gdown.download(GDRIVE_URL, MODEL_PATH, quiet=False)
+    print(f"Model downloaded to {MODEL_PATH}")
+else:
+    print(f"Model already exists at {MODEL_PATH}")
 
 # Custom classifier head
 class CustomFastRCNNPredictor(nn.Module):
@@ -57,8 +72,6 @@ tracker = Tracker(
 )
 
 # Initialise device and load trained model
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "ml_models/checkpoint_fasterRcnn_customhead_customdataset_epoch_3.pth")
 NUM_CLASSES = 2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = get_model(NUM_CLASSES)
@@ -124,9 +137,11 @@ def process_video_worker_loop():
                     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     input_tensor = transform(image).to(device)
 
+                    # Get prediections, avoid computing gradient
                     with torch.no_grad():
                         predictions = model([input_tensor])[0]
 
+                    # Get detections
                     detections = []
                     for box, score, label in zip(predictions["boxes"], predictions["scores"], predictions["labels"]):
                         if score > 0.97:
@@ -136,8 +151,10 @@ def process_video_worker_loop():
                             cy = (y1 + y2) / 2
                             detections.append(Detection(points=np.array([[cx, cy]]), scores=np.array([score]), data=box))
 
+                    # Load detections into tracker
                     tracked_objects = tracker.update(detections=detections)
 
+                    # Create bounding boxes per frame, calculate unique identifications
                     for obj in tracked_objects:
                         unique_ids.add(obj.id)
                         if hasattr(obj.last_detection, "data"):
@@ -152,6 +169,7 @@ def process_video_worker_loop():
                         cv2.putText(frame, f"Sheep #{obj.id}", (int(center_x), int(center_y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
+                    # Write frame out to video file
                     out.write(frame)
                     frame_index += 1
 

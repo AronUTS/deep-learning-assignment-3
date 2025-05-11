@@ -40,19 +40,13 @@ npm run dev
 
 ## 🧪 Run In Docker Container
 
+For local development, please download this trained model checkpoint and
+store `in backend/app/ml_models` folder - https://drive.google.com/uc?id=1msshCMWch0CuzKc4uo_s2F4h4yVHHU4y
+This will mean you container will startup faster as it does not have to download the model every time.
+
 ```
 docker-compose build
 docker-compose up
-```
-
-On first time build only you will need to run flask database migrations to create tables from within container.
-
-```
-docker exec -it deep-learning-assignment-3-web-1 /bin/bash
-cd backend
-flask db init
-flask db migrate -m "Add processing_queue table"
-flask db upgrade
 ```
 
 ### Access database 
@@ -68,9 +62,8 @@ SELECT 1 FROM agritrack_app.processing_queue
 
 ### Clear local docker environment
 
-To drop containers and volumes, will restore database
+To drop containers and volumes, doing this will restore database
 
 ```
-docker compose down --volumes --remove-orphans
-docker volume prune -f
+docker compose down -v
 ```

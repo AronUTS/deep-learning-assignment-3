@@ -17,3 +17,5 @@ numpy>=1.26.4
 norfair>=2.1.0
 deep_sort_realtime
 
+# Google Drive for model store
+gdown==5.1.0
