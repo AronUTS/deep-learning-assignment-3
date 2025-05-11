@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     python3-dev \
     postgresql-client \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

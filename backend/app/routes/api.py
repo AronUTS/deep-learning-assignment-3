@@ -5,25 +5,13 @@ from ..models.processing_queue import ProcessingQueue
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
-@api_bp.route('/hello')
-def hello():
-    return jsonify(message="Hello from Flask!")
-
-@api_bp.route('/check_db')
-def check_db():
-    try:
-        db.session.execute('SELECT 1')
-        return jsonify(message="Database connection successful"), 200
-    except Exception as e:
-        return jsonify(message=f"Error: {str(e)}"), 500
-
 # Route to test insert a row into the processing_queue
-@api_bp.route('/upload', methods=['POST'])
+@api_bp.route('/upload', methods=['GET'])
 def add_processing_queue():
     try:
         # Dummy data to insert into the processing_queue table
         dummy_data = {
-            "file_name": "dummy_video.mp4",
+            "file_name": "video_02.mp4",
             "status": "QUEUED",
             "format": "mp4",
             "duration": 150,

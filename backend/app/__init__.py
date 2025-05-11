@@ -4,7 +4,9 @@ from .extensions import db
 from .routes.api import api_bp
 from .config import Config
 from flask_migrate import Migrate
+import threading
 from .models.processing_queue import ProcessingQueue
+from .workers.video_worker import process_video_worker_loop 
 
 def create_app():
     app = Flask(__name__, static_folder='../static', static_url_path='')
@@ -13,13 +15,20 @@ def create_app():
     db.init_app(app)
 
     # Initialize Flask-Migrate
-    migrate = Migrate(app, db)
+    Migrate(app, db)
 
     with app.app_context():
         db.engine.execute('CREATE SCHEMA IF NOT EXISTS agritrack_app') # Create agritrack schema to store app tables
         db.create_all()
 
     app.register_blueprint(api_bp)
+
+    # Start background worker thread
+    if app.config.get("START_WORKER", True):
+        def run_worker():
+            with app.app_context():
+                process_video_worker_loop()
+        threading.Thread(target=run_worker, daemon=True).start()
 
     # Serve frontend static files
     @app.route('/')
