@@ -20,11 +20,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
+COPY backend/ ./backend/
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ ./backend/
 # Copy frontend to code to backend image
 COPY --from=frontend-builder /app/dist/ ./backend/static/
 

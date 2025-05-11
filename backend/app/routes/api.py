@@ -101,16 +101,22 @@ def get_analysis_from_task():
 
     if not processing_result:
         return jsonify({'error': 'No completed task found with that ID'}), 404
-
+    #add more fields to the response as needed
     response_data = {
         'video_name': processing_result.file_name,
+        'video_format': processing_result.format,
+        'video_path': os.path.join(PROCESSING_FOLDER, processing_result.file_name),  # Path to the processed video
         'object_counts': processing_result.detected_objects,  # e.g. int value of detected object count
         'processing_time': processing_result.processing_time,  # e.g. "00:01:23"
         'thumbnail_path': processing_result.thumbnail_path,
         'status': processing_result.status,
         'processed_frames': processing_result.processed_frames,             # Optional
+        'progress_percentage': processing_result.progress_percentage,                     # Optional
+        'duration': processing_result.duration,                                 # Optional
         'average_precision': processing_result.average_precision,                             # Optional
         'upload_time': processing_result.upload_timestamp.isoformat(),  # Updated to use upload_timestamp
+        'resolution': processing_result.resolution,
+        'size': processing_result.size,
     }
 
     return jsonify(response_data), 200
