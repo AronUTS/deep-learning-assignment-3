@@ -105,10 +105,11 @@ def get_analysis_from_task():
         'video_name': processing_result.file_name,
         'object_counts': processing_result.detected_objects,  # e.g. {"car": 12, "person": 5}
         'processing_time': processing_result.processing_time,  # e.g. "00:01:23"
-        'processed_video_url': processing_result.output_url,
+        'thumbnail_path': processing_result.thumbnail_path,
+        'status': processing_result.status,
+        'processed_frames': processing_result.processed_frames,             # Optional
+        'average_precision': processing_result.average_precision,                             # Optional
         'upload_time': processing_result.upload_timestamp.isoformat(),  # Updated to use upload_timestamp
-        'frame_count': processing_result.frame_count,             # Optional
-        'fps': processing_result.fps,                             # Optional
     }
 
     return jsonify(response_data), 200
