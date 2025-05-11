@@ -61,25 +61,26 @@ def add_processing_queue():
 def get_processing_queue():
     try:
         # Query the processing_queue table for all rows
-        processing_queues = ProcessingQueue.query.all()
+        processing_queue = ProcessingQueue.query.all()
 
         # Convert the rows to a list of dictionaries
         result = []
-        for queue in processing_queues:
+        for task in processing_queue:
             result.append({
-                'id': queue.id,
-                'file_name': queue.file_name,
-                'upload_timestamp': queue.upload_timestamp,
-                'status': queue.status,
-                'format': queue.format,
-                'duration': queue.duration,
-                'size': queue.size,
-                'resolution': queue.resolution,
-                'processing_time': queue.processing_time,
-                'processed_frames': queue.processed_frames,
-                'thumbnail_path': queue.thumbnail_path,
-                'detected_objects': queue.detected_objects,
-                'average_precision': queue.average_precision
+                'id': task.id,
+                'file_name': task.file_name,
+                'upload_timestamp': task.upload_timestamp,
+                'status': task.status,
+                'format': task.format,
+                'duration': task.duration,
+                'size': task.size,
+                'resolution': task.resolution,
+                'progress_percentage': task.progress_percentage,
+                'processing_time': task.processing_time,
+                'processed_frames': task.processed_frames,
+                'thumbnail_path': task.thumbnail_path,
+                'detected_objects': task.detected_objects,
+                'average_precision': task.average_precision
             })
 
         return jsonify(result=result), 200
@@ -103,7 +104,7 @@ def get_analysis_from_task():
 
     response_data = {
         'video_name': processing_result.file_name,
-        'object_counts': processing_result.detected_objects,  # e.g. {"car": 12, "person": 5}
+        'object_counts': processing_result.detected_objects,  # e.g. int value of detected object count
         'processing_time': processing_result.processing_time,  # e.g. "00:01:23"
         'thumbnail_path': processing_result.thumbnail_path,
         'status': processing_result.status,
