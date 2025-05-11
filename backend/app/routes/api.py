@@ -2,42 +2,59 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
 from ..extensions import db
 from ..models.processing_queue import ProcessingQueue
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
+UPLOAD_FOLDER = 'backend/app/videos/uploads'
+PROCESSING_FOLDER = 'backend/app/videos/processed'
+ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the folder exists
+os.makedirs(PROCESSING_FOLDER, exist_ok=True)  # Ensure the folder exists
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Route to test insert a row into the processing_queue
-@api_bp.route('/upload', methods=['GET'])
+@api_bp.route('/upload', methods=['POST'])
 def add_processing_queue():
-    try:
-        # Dummy data to insert into the processing_queue table
-        dummy_data = {
-            "file_name": "video_02.mp4",
-            "status": "QUEUED",
-            "format": "mp4",
-            "duration": 150,
-            "size": 120.5,
-            "resolution": "1280x720"
-        }
-        
-        # Create a new row in the processing_queue table using dummy data
-        processing_queue = ProcessingQueue(
-            file_name=dummy_data["file_name"],
-            status=dummy_data["status"],
-            format=dummy_data["format"],
-            duration=dummy_data["duration"],
-            size=dummy_data["size"],
-            resolution=dummy_data["resolution"]
-        )
+    if 'video' not in request.files:
+        return jsonify(message="No file part in the request"), 400
 
-        # Add the new row to the session and commit to the database
-        db.session.add(processing_queue)
-        db.session.commit()
+    file = request.files['video']
 
-        return jsonify(message="Dummy row added to processing_queue"), 201
+    if file.filename == '':
+        return jsonify(message="No file selected for uploading"), 400
 
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return jsonify(message=f"Error: {str(e)}"), 500
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        print(f"File saved to {file_path}")
+
+        # You may later extract metadata like duration, size, etc. using ffmpeg or similar
+        try:
+            processing_queue = ProcessingQueue(
+                file_name=filename,
+                status="QUEUED",
+                format=filename.rsplit('.', 1)[1].lower(),
+                upload_timestamp=datetime.utcnow(),
+                size=os.path.getsize(file_path) / (1024 * 1024),  # in MB
+                resolution=None,  # to be filled during processing
+                duration=None,    # to be filled during processing
+            )
+            db.session.add(processing_queue)
+            db.session.commit()
+
+            return jsonify(message="File uploaded and task queued", task_id=processing_queue.id), 201
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return jsonify(message=f"Database error: {str(e)}"), 500
+    else:
+        return jsonify(message="Unsupported file type"), 400
 
 # Route to retrieve rows from the processing_queue
 @api_bp.route('/processing_queue', methods=['GET'])
@@ -69,3 +86,29 @@ def get_processing_queue():
 
     except SQLAlchemyError as e:
         return jsonify(message=f"Error: {str(e)}"), 500
+
+
+@api_bp.route('/analysis', methods=['GET'])
+def get_analysis_from_task():
+    task_id = request.args.get('task_id')
+
+    if not task_id:
+        return jsonify({'error': 'Missing task_id parameter'}), 400
+
+    # Query the completed task
+    processing_result = ProcessingQueue.query.filter_by(id=task_id, status='COMPLETE').first()
+
+    if not processing_result:
+        return jsonify({'error': 'No completed task found with that ID'}), 404
+
+    response_data = {
+        'video_name': processing_result.file_name,
+        'object_counts': processing_result.detected_objects,  # e.g. {"car": 12, "person": 5}
+        'processing_time': processing_result.processing_time,  # e.g. "00:01:23"
+        'processed_video_url': processing_result.output_url,
+        'upload_time': processing_result.upload_timestamp.isoformat(),  # Updated to use upload_timestamp
+        'frame_count': processing_result.frame_count,             # Optional
+        'fps': processing_result.fps,                             # Optional
+    }
+
+    return jsonify(response_data), 200
