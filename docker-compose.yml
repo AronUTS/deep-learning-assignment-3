@@ -4,9 +4,9 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "5001:5001"
     environment:
-      - FLASK_DEBUG=0
+      - FLASK_DEBUG=1 # Enable debug mode
       - DATABASE_URL=postgresql://flask_user:flask_password@db:5432/flask_db
     restart: unless-stopped
     depends_on:
