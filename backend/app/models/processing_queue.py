@@ -19,6 +19,7 @@ class ProcessingQueue(db.Model):
     duration = db.Column(db.Integer, nullable=True)  # in seconds
     size = db.Column(db.Float, nullable=True)  # in megabytes
     resolution = db.Column(db.String, nullable=True)  # e.g., "1920x1080"
+    progress_percentage = db.Column(db.Integer, nullable=True) #Int reflecting proocessing progress, update by the worker job
     processing_time = db.Column(db.Integer, nullable=True)  # in seconds
     processed_frames = db.Column(db.Integer, nullable=True)
     thumbnail_path = db.Column(db.String, nullable=True)

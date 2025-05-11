@@ -125,7 +125,11 @@ def process_video_worker_loop():
 
                 # Set to store unique ids for object counts
                 unique_ids = set()
+
+                # Vars to track progress
                 frame_index = 0
+                progress_update_threshold = 5 
+                last_logged_progress = 0  
 
                 # While frames exist, run detection on video
                 while cap.isOpened():
@@ -173,8 +177,13 @@ def process_video_worker_loop():
                     out.write(frame)
                     frame_index += 1
 
-                    if frame_index % 30 == 0:
-                        print(f"[Worker] Processed {frame_index}/{total_frames} frames...")
+                    # Update progress for task in db so it can be read by the frontend and log to console
+                    progress_percentage = int((frame_index / total_frames) * 100)
+                    if progress_percentage >= last_logged_progress + progress_update_threshold:
+                        last_logged_progress = progress_percentage
+                        task.progress_percentage = progress_percentage
+                        db.session.commit()
+                        print(f"[Worker] Progress: {progress_percentage}%")
 
                 print(f"[Worker] Finished processing. Unique sheep IDs detected: {len(unique_ids)}")
 
