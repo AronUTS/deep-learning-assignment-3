@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from app.models.processing_queue import ProcessingQueue
 from app.extensions import db
 import torch
@@ -12,8 +13,9 @@ import os
 import numpy as np
 from norfair import Detection, Tracker
 import gdown
+import subprocess
 
-# If model doesnt exist in container, load it from google drive
+# If model doesn't exist in container, load it from google drive
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "ml_models/checkpoint_fasterRcnn_customhead_customdataset_epoch_3.pth")
 GDRIVE_FILE_ID = "1msshCMWch0CuzKc4uo_s2F4h4yVHHU4y"
@@ -63,6 +65,26 @@ def custom_distance(detection, tracked_object):
     trk_center = tracked_object.estimate[0]
     return np.linalg.norm(det_center - trk_center)
 
+# Helper to run FFmpeg encoding to ensure correct format after video is saved.
+# This is a workaround for video transcoding Hardware limitations when running encoding on MacOS in Docker.
+def run_ffmpeg_encoding(input_video_path, output_video_path):
+    # FFmpeg command for encoding
+    command = [
+        "ffmpeg", 
+        "-i", input_video_path,  # Input video file
+        "-vcodec", "libx264",     # Video codec (you can change this based on your needs)
+        "-acodec", "aac",         # Audio codec (if your video has audio)
+        "-strict", "-2",          # Use experimental codecs
+        output_video_path        # Output file path
+    ]
+    
+    try:
+        print(f"[Worker] Running FFmpeg encoding: {command}")
+        subprocess.run(command, check=True)  # Run the command and raise an error if it fails
+        print(f"[Worker] FFmpeg encoding completed: {output_video_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"[Worker] Error during FFmpeg encoding: {e}")
+
 # Initialise Norfair tracker with center-based distance
 tracker = Tracker(
     distance_function=custom_distance,
@@ -95,8 +117,8 @@ def process_video_worker_loop():
             if task:
 
                 # Define input and output variables
-                INPUT_VIDEO_PATH = os.path.join(BASE_DIR, "videos/uploads/video_02.mp4")
-                OUTPUT_VIDEO_PATH = os.path.join(BASE_DIR, "videos/processed/video_02.mp4")
+                INPUT_VIDEO_PATH = os.path.join(BASE_DIR,f"videos/uploads/{task.file_name}")
+                OUTPUT_VIDEO_PATH = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/{task.file_name}")
 
                 # Open video and grab processing metrics
                 print(f"[Worker] Opening video file: {INPUT_VIDEO_PATH}")
@@ -109,12 +131,13 @@ def process_video_worker_loop():
                 # If video opened successfully, update tasks status to processing
                 print(f"[Worker] Processing: {task.file_name}")
                 task.status = 'PROCESSING'
+                task.start_time = datetime.utcnow()  # Capture the start time
                 db.session.commit()
 
                 print(f"[Worker] Video properties - Total frames: {total_frames}, FPS: {fps}, Resolution: {width}x{height}")
 
                 os.makedirs("../videos/processed", exist_ok=True)
-                fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 out = cv2.VideoWriter(OUTPUT_VIDEO_PATH, fourcc, fps, (width, height))
 
                 if not out.isOpened():
@@ -130,6 +153,7 @@ def process_video_worker_loop():
                 frame_index = 0
                 progress_update_threshold = 5 
                 last_logged_progress = 0  
+                last_frame = None  # This will store the last frame for the thumbnail
 
                 # While frames exist, run detection on video
                 while cap.isOpened():
@@ -138,10 +162,13 @@ def process_video_worker_loop():
                         print("[Worker] End of video stream reached.")
                         break
 
+                    # Store the last frame for thumbnail capture
+                    last_frame = frame
+
                     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     input_tensor = transform(image).to(device)
 
-                    # Get prediections, avoid computing gradient
+                    # Get predictions, avoid computing gradient
                     with torch.no_grad():
                         predictions = model([input_tensor])[0]
 
@@ -177,22 +204,51 @@ def process_video_worker_loop():
                     out.write(frame)
                     frame_index += 1
 
-                    # Update progress for task in db so it can be read by the frontend and log to console
+                    # Update progress and processing time for task in db
                     progress_percentage = int((frame_index / total_frames) * 100)
                     if progress_percentage >= last_logged_progress + progress_update_threshold:
                         last_logged_progress = progress_percentage
                         task.progress_percentage = progress_percentage
+                        elapsed_time = (datetime.utcnow() - task.start_time).total_seconds()
+                        task.processing_time = elapsed_time  # Update processing time
                         db.session.commit()
-                        print(f"[Worker] Progress: {progress_percentage}%")
+                        print(f"[Worker] Progress: {progress_percentage}% | Processing Time: {elapsed_time:.2f}s")
 
                 print(f"[Worker] Finished processing. Unique sheep IDs detected: {len(unique_ids)}")
 
                 cap.release()
                 out.release()
 
+                # Capture thumbnail (last frame)
+                if last_frame is not None:
+                    thumbnail_rel_path = f"static/assets/thumbnails/processed/{task.file_name}.jpg"
+                    thumbnail_abs_path = os.path.join(os.path.dirname(BASE_DIR), thumbnail_rel_path)
+
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(thumbnail_abs_path), exist_ok=True)
+
+                    # Save thumbnail to disk
+                    cv2.imwrite(thumbnail_abs_path, last_frame)
+
+                    # Public URL path (used by frontend)
+                    task.thumbnail_path = thumbnail_rel_path
+                    db.session.commit()
+
+                    print(f"[Worker] Thumbnail saved at {thumbnail_rel_path}")
+
                 # Update tasks status to COMPLETED
                 task.status = 'COMPLETED'
+                task.end_time = datetime.utcnow()  # Capture the end time
                 db.session.commit()
+
+                # Now run FFmpeg encoding on the processed video
+                final_output_video_path = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/encoded_{task.file_name}")
+                run_ffmpeg_encoding(OUTPUT_VIDEO_PATH, final_output_video_path)
+
+                # After encoding, update the task with the final video path
+                task.final_output_video_path = f"static/assets/videos/processed/encoded_{task.file_name}"
+                db.session.commit()
+
                 print(f"[Worker] Completed: {task.file_name}")
             else:
                 # Nothing to do, sleep a bit

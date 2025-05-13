@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc
 from ..extensions import db
 from ..models.processing_queue import ProcessingQueue
 import os
@@ -60,8 +61,8 @@ def add_processing_queue():
 @api_bp.route('/processing_queue', methods=['GET'])
 def get_processing_queue():
     try:
-        # Query the processing_queue table for all rows
-        processing_queue = ProcessingQueue.query.all()
+        # Query the processing_queue table for all rows, ordered by upload_timestamp (newest first)
+        processing_queue = ProcessingQueue.query.order_by(desc(ProcessingQueue.upload_timestamp)).all()
 
         # Convert the rows to a list of dictionaries
         result = []
@@ -78,16 +79,13 @@ def get_processing_queue():
                 'progress_percentage': task.progress_percentage,
                 'processing_time': task.processing_time,
                 'processed_frames': task.processed_frames,
-                'thumbnail_path': task.thumbnail_path,
                 'detected_objects': task.detected_objects,
                 'average_precision': task.average_precision
             })
 
         return jsonify(result=result), 200
-
-    except SQLAlchemyError as e:
-        return jsonify(message=f"Error: {str(e)}"), 500
-
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/analysis', methods=['GET'])
 def get_analysis_from_task():
@@ -97,19 +95,25 @@ def get_analysis_from_task():
         return jsonify({'error': 'Missing task_id parameter'}), 400
 
     # Query the completed task
-    processing_result = ProcessingQueue.query.filter_by(id=task_id, status='COMPLETE').first()
+    processing_result = ProcessingQueue.query.filter_by(id=task_id, status='COMPLETED').first()
 
     if not processing_result:
         return jsonify({'error': 'No completed task found with that ID'}), 404
 
     response_data = {
-        'video_name': processing_result.file_name,
-        'object_counts': processing_result.detected_objects,  # e.g. int value of detected object count
-        'processing_time': processing_result.processing_time,  # e.g. "00:01:23"
-        'processed_video_url': processing_result.output_url,
-        'upload_time': processing_result.upload_timestamp.isoformat(),  # Updated to use upload_timestamp
-        'frame_count': processing_result.frame_count,             # Optional
-        'fps': processing_result.fps,                             # Optional
-    }
+                'id': processing_result.id,
+                'file_name': processing_result.file_name,
+                'upload_timestamp': processing_result.upload_timestamp,
+                'status': processing_result.status,
+                'format': processing_result.format,
+                'duration': processing_result.duration,
+                'size': processing_result.size,
+                'resolution': processing_result.resolution,
+                'progress_percentage': processing_result.progress_percentage,
+                'processing_time': processing_result.processing_time,
+                'processed_frames': processing_result.processed_frames,
+                'detected_objects': processing_result.detected_objects,
+                'average_precision': processing_result.average_precision
+            }
 
     return jsonify(response_data), 200

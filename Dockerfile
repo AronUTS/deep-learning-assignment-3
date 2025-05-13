@@ -17,12 +17,14 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libgl1 \
     libglib2.0-0 \
+    ffmpeg \
+    libx264-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY backend/ ./backend/
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy frontend to code to backend image
 COPY --from=frontend-builder /app/dist/ ./backend/static/

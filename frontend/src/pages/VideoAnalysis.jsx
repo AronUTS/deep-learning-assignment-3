@@ -39,17 +39,56 @@ export default function VideoAnalysis() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        await new Promise((res) => setTimeout(res, 500));
-        const data = mockResponse;
-        setVideoUrl(data.video_url);
-        setMetrics(data.metrics);
-        setVideoInfo(data.video_info);
+        const response = await fetch(`/api/analysis?task_id=${id}`);
+        if (!response.ok) {
+          throw new Error(`Server responded with status ${response.status}`);
+        }
+  
+        const data = await response.json();
+  
+        // Construct the processed video URL if you store it locally or remotely
+        const videoUrl = `${window.location.origin}/assets/videos/processed/encoded_${data.file_name}`;
+  
+        // Convert duration seconds to readable time
+        const formatDuration = (seconds) => {
+          if (seconds !== null) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}m ${secs}s`;
+          } else {
+            return '-'
+          }
+        };
+  
+        // Format average precision (if it's a float like 0.87)
+        const avgConfidence = data.average_precision
+          ? `${Math.round(data.average_precision * 100)}%`
+          : 'N/A';
+  
+        setVideoUrl(videoUrl);
+  
+        setVideoInfo({
+          Name: data.file_name,
+          Uploaded: new Date(data.upload_timestamp).toLocaleString(),
+          Format: data.format,
+          Resolution: data.resolution,
+          Duration: formatDuration(data.duration),
+          Size: `${(data.size / (1024 * 1024)).toFixed(2)} MB`,
+        });
+  
+        setMetrics({
+          'Detected Objects': data.detected_objects,
+          'Frames Processed': data.processed_frames,
+          'Average Confidence': avgConfidence,
+          'Processing Time': formatDuration(data.processing_time),
+        });
+  
         setStatus('');
       } catch (error) {
         setStatus(`Error: ${error.message}`);
       }
     };
-
+  
     fetchAnalysis();
   }, [id]);
 
@@ -87,6 +126,8 @@ export default function VideoAnalysis() {
                 width="100%"
                 src={videoUrl}
                 style={{ display: 'block' }}
+                preload="auto"  // Preload video to allow better streaming and buffering
+                type="video/mp4"
               />
             </Box>
           )}

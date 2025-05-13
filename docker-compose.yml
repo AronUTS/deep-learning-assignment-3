@@ -11,6 +11,14 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+    volumes:
+      - thumbnail_data:/app/backend/static/assets/thumbnails/processed
+      - video_data:/app/backend/static/assets/videos/processed
+    devices:
+      - "/dev/video0:/dev/video0"
+      - "/dev/video10:/dev/video10"
+      - "/dev/video11:/dev/video11"
+    privileged: true
 
   db:
     image: postgres:13
@@ -25,3 +33,5 @@ services:
 
 volumes:
   postgres_data:
+  thumbnail_data:
+  video_data:
