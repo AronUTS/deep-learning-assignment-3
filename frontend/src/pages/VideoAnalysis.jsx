@@ -8,26 +8,7 @@ import {
   Card,
   CardContent,
   Grid,
-  Divider,
-  Button,
 } from '@mui/material';
-
-const mockResponse = {
-  video_url: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  video_info: {
-    name: 'sample_video.mp4',
-    resolution: '1280x720',
-    duration: '15 seconds',
-    size: '4.5MB',
-    format: 'MP4',
-  },
-  metrics: {
-    'Detected Objects': 42,
-    'Average Confidence': '91%',
-    'Processing Time': '2.3s',
-    'Frames Processed': 120,
-  },
-};
 
 export default function VideoAnalysis() {
   const { id } = useParams();
@@ -60,10 +41,10 @@ export default function VideoAnalysis() {
           }
         };
   
-        // Format average precision (if it's a float like 0.87)
-        const avgConfidence = data.average_precision
-          ? `${Math.round(data.average_precision * 100)}%`
-          : 'N/A';
+        // Format average confidence (if it's a float like 0.87)
+        const avgConfidence = data.average_confidence
+        ? `${(data.average_confidence * 100).toFixed(2)}%`
+        : 'N/A';
   
         setVideoUrl(videoUrl);
   
@@ -72,8 +53,8 @@ export default function VideoAnalysis() {
           Uploaded: new Date(data.upload_timestamp).toLocaleString(),
           Format: data.format,
           Resolution: data.resolution,
-          Duration: formatDuration(data.duration),
-          Size: `${(data.size / (1024 * 1024)).toFixed(2)} MB`,
+          Duration: formatDuration(data.duration_seconds),
+          Size: data.size ? `${data.size.toFixed(2)} MB` : 'N/A',
         });
   
         setMetrics({

@@ -37,7 +37,7 @@ export default function UploadTasks() {
           name: t.file_name,
           status: t.status.toLowerCase(),
           progress: t.progress_percentage || 0,
-          processTime: t.processing_time ? `${t.processing_time}s` : '—',
+          processTime: typeof t.processing_time === 'number' ? t.processing_time : null, 
           image: t.thumbnail_path || null,
         }));
 
@@ -62,10 +62,14 @@ export default function UploadTasks() {
   };
 
   const formatDuration = (seconds) => {
-    if (!seconds && seconds !== 0) return 'N/A';
+    if (typeof seconds !== 'number' || isNaN(seconds)) return '—'; // ✅ FIXED
+
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+
+    return seconds < 60
+      ? `${Math.round(seconds)}s` // ✅ BETTER for short times
+      : `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
   };
 
   return (

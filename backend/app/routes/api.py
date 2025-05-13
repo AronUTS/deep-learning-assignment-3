@@ -44,7 +44,7 @@ def add_processing_queue():
                 upload_timestamp=datetime.utcnow(),
                 size=os.path.getsize(file_path) / (1024 * 1024),  # in MB
                 resolution=None,  # to be filled during processing
-                duration=None,    # to be filled during processing
+                duration_seconds=None,    # to be filled during processing
             )
             db.session.add(processing_queue)
             db.session.commit()
@@ -73,14 +73,14 @@ def get_processing_queue():
                 'upload_timestamp': task.upload_timestamp,
                 'status': task.status,
                 'format': task.format,
-                'duration': task.duration,
+                'duration_seconds': task.duration_seconds,
                 'size': task.size,
                 'resolution': task.resolution,
                 'progress_percentage': task.progress_percentage,
                 'processing_time': task.processing_time,
                 'processed_frames': task.processed_frames,
                 'detected_objects': task.detected_objects,
-                'average_precision': task.average_precision
+                'average_confidence': task.average_confidence
             })
 
         return jsonify(result=result), 200
@@ -106,14 +106,14 @@ def get_analysis_from_task():
                 'upload_timestamp': processing_result.upload_timestamp,
                 'status': processing_result.status,
                 'format': processing_result.format,
-                'duration': processing_result.duration,
+                'duration_seconds': processing_result.duration_seconds,
                 'size': processing_result.size,
                 'resolution': processing_result.resolution,
                 'progress_percentage': processing_result.progress_percentage,
                 'processing_time': processing_result.processing_time,
                 'processed_frames': processing_result.processed_frames,
                 'detected_objects': processing_result.detected_objects,
-                'average_precision': processing_result.average_precision
+                'average_confidence': processing_result.average_confidence
             }
 
     return jsonify(response_data), 200

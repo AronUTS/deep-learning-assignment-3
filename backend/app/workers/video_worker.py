@@ -120,6 +120,9 @@ def process_video_worker_loop():
                 INPUT_VIDEO_PATH = os.path.join(BASE_DIR,f"videos/uploads/{task.file_name}")
                 OUTPUT_VIDEO_PATH = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/{task.file_name}")
 
+                # Store prediction scores to compute confidence
+                pred_scores_all = [] 
+
                 # Open video and grab processing metrics
                 print(f"[Worker] Opening video file: {INPUT_VIDEO_PATH}")
                 cap = cv2.VideoCapture(INPUT_VIDEO_PATH)
@@ -127,6 +130,10 @@ def process_video_worker_loop():
                 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                if fps > 0:
+                    duration_seconds = total_frames / fps
+                else:
+                    duration_seconds = 0
 
                 # If video opened successfully, update tasks status to processing
                 print(f"[Worker] Processing: {task.file_name}")
@@ -176,6 +183,7 @@ def process_video_worker_loop():
                     detections = []
                     for box, score, label in zip(predictions["boxes"], predictions["scores"], predictions["labels"]):
                         if score > 0.97:
+                            pred_scores_all.append(score.item())
                             box = box.to("cpu").numpy()
                             x1, y1, x2, y2 = box
                             cx = (x1 + x2) / 2
@@ -236,17 +244,25 @@ def process_video_worker_loop():
 
                     print(f"[Worker] Thumbnail saved at {thumbnail_rel_path}")
 
-                # Update tasks status to COMPLETED
-                task.status = 'COMPLETED'
-                task.end_time = datetime.utcnow()  # Capture the end time
-                db.session.commit()
-
                 # Now run FFmpeg encoding on the processed video
                 final_output_video_path = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/encoded_{task.file_name}")
                 run_ffmpeg_encoding(OUTPUT_VIDEO_PATH, final_output_video_path)
 
-                # After encoding, update the task with the final video path
+                # Compute and store average confidence
+                if pred_scores_all:
+                    avg_conf = sum(pred_scores_all) / len(pred_scores_all)
+                else:
+                    avg_conf = 0.0
+
+                # After encoding, update all task details
                 task.final_output_video_path = f"static/assets/videos/processed/encoded_{task.file_name}"
+                task.duration_seconds = duration_seconds
+                task.detected_objects = len(unique_ids)
+                task.average_confidence = avg_conf
+                task.resolution = f"{width}x{height}"
+                task.processed_frames = total_frames
+                task.status = 'COMPLETED'
+                task.end_time = datetime.utcnow()
                 db.session.commit()
 
                 print(f"[Worker] Completed: {task.file_name}")
