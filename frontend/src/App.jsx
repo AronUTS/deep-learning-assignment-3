@@ -8,6 +8,7 @@ import UploadVideo from './pages/UploadVideo';
 import UploadTasks from './pages/UploadTasks';
 import VideoAnalysis from './pages/VideoAnalysis';
 import Footer from './components/Footer';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -33,10 +34,11 @@ function App() {
             }}
           >
             <Routes>
-            <Route path="/" element={<Home />} />
+              <Route path="/" element={<Home />} />
               <Route path="/upload" element={<UploadVideo />} />
               <Route path="/tasks" element={<UploadTasks />} />
               <Route path="/analysis/:id" element={<VideoAnalysis />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Box>
           <Footer />

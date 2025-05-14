@@ -43,6 +43,15 @@ def create_app():
         if path != "" and os.path.exists(file_path):
             return send_from_directory(app.static_folder, path)
         return send_from_directory(app.static_folder, 'index.html')
+    
+    # Handle error/unavailable routes by returning to app homepage
+    @app.errorhandler(404)
+    def not_found(e):
+        # Return index.html only if the request accepts HTML
+        if request.accept_mimetypes.accept_html:
+            return send_from_directory(app.static_folder, 'index.html')
+        else:
+            return abort(404)
 
     # Serve video files from processed assets path with range request support
     @app.route('/assets/videos/processed/<filename>')
