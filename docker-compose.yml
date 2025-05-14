@@ -5,8 +5,14 @@ services:
     build: .
     ports:
       - "5001:5001"
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
     environment:
-      - FLASK_DEBUG=1 # Enable debug mode
+      - FLASK_DEBUG=1
       - DATABASE_URL=postgresql://flask_user:flask_password@db:5432/flask_db
     restart: unless-stopped
     depends_on:
@@ -14,10 +20,6 @@ services:
     volumes:
       - thumbnail_data:/app/backend/static/assets/thumbnails/processed
       - video_data:/app/backend/static/assets/videos/processed
-    devices:
-      - "/dev/video0:/dev/video0"
-      - "/dev/video10:/dev/video10"
-      - "/dev/video11:/dev/video11"
     privileged: true
 
   db:
