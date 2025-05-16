@@ -14,10 +14,11 @@ import numpy as np
 from norfair import Detection, Tracker
 import gdown
 import subprocess
+import random
 
 # Init directory and model vars
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "ml_models/checkpoint_fasterRcnn_customhead_customdataset_epoch_3.pth")
+MODEL_PATH = os.path.join(BASE_DIR, "ml_models/final_model_fasterRcnn_resnet50_customhead_customdataset_lowdropout_epoch_8.pth")
 GDRIVE_FILE_ID = "1msshCMWch0CuzKc4uo_s2F4h4yVHHU4y"
 GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
 
@@ -56,12 +57,6 @@ def get_model(num_classes):
     model.roi_heads.box_predictor = CustomFastRCNNPredictor(in_features, num_classes)
     return model
 
-# Custom distance function for use with Norfair tracker
-def custom_distance(detection, tracked_object):
-    det_center = detection.points[0]
-    trk_center = tracked_object.estimate[0]
-    return np.linalg.norm(det_center - trk_center)
-
 # Helper to encode video after processing
 # This is a workaround for macOS devices as MacOS hardware encoding is not possible in docker container
 def run_ffmpeg_encoding(input_video_path, output_video_path):
@@ -78,9 +73,20 @@ def run_ffmpeg_encoding(input_video_path, output_video_path):
     except subprocess.CalledProcessError as e:
         pass
 
+# Helper function to assign random colours to detected objects
+def get_colour(track_id, id_color_map):
+    if track_id not in id_color_map:
+        random.seed(track_id)
+        id_color_map[track_id] = (
+            random.randint(50, 255),
+            random.randint(50, 255),
+            random.randint(50, 255)
+        )
+    return id_color_map[track_id]
+
 # Initialise the Norfair tracker
 tracker = Tracker(
-    distance_function=custom_distance,
+    distance_function="euclidean",
     distance_threshold=30,
     hit_counter_max=60,
     initialization_delay=3
@@ -148,6 +154,7 @@ def process_video_worker_loop():
 
                 # Initialise vars for core frame loop
                 unique_ids = set()
+                id_color_map = {}
                 frame_index = 0
                 progress_update_threshold = 5
                 last_logged_progress = 0
@@ -172,7 +179,7 @@ def process_video_worker_loop():
                     # Feed filtered predictions to tracker
                     detections = []
                     for box, score, label in zip(predictions["boxes"], predictions["scores"], predictions["labels"]):
-                        if score > 0.97:
+                        if score > 0.95:
                             score_val = score.cpu().item()
                             pred_scores_all.append(score_val)
                             box = box.cpu().numpy()
@@ -192,9 +199,25 @@ def process_video_worker_loop():
                             cx, cy = obj.estimate[0]
                             x1, y1, x2, y2 = cx - 20, cy - 20, cx + 20, cy + 20
 
-                        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), 2)
-                        cv2.putText(frame, f"Sheep #{obj.id}", (int((x1 + x2) / 2), int((y1 + y2) / 2) - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        # Normalize box coordinates to integers
+                        x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+
+                        # Assign color
+                        color = get_colour(obj.id, id_color_map)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+                        # Prepare label
+                        label = f"Sheep #{obj.id}"
+                        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+
+                        # Draw filled label background
+                        label_bg_topleft = (x1, y1 - th - 8)
+                        label_bg_bottomright = (x1 + tw + 4, y1)
+                        cv2.rectangle(frame, label_bg_topleft, label_bg_bottomright, color, -1)
+
+                        # Draw label text
+                        cv2.putText(frame, label, (x1 + 2, y1 - 4),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
                     # Write out frame
                     out.write(frame)

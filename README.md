@@ -10,6 +10,7 @@ This project is created to build a livestock monitoring and tracking app that ru
 │   └── src/
 ├── model_training/         # Python jupyter notebook for model training in cloud GPUs
 │   └── agritrack_frcnn_model_training.ipynb
+|   └── dataset_utilities   # Some utility scripts used in the creation of datasets for the project
 ├── requirements.txt        # Python dependencies
 ├── Dockerfile              # Multi-stage build
 ├── docker-compose.yml
