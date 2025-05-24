@@ -30,7 +30,7 @@ RUN pip install -r requirements.txt
 COPY --from=frontend-builder /app/dist/ ./backend/static/
 
 # Expose port 5000 for flask api
-EXPOSE 5000
+EXPOSE 5001
 
 # Run flask app
 CMD ["python", "backend/wsgi.py"]
