@@ -28,7 +28,7 @@ export default function VideoAnalysis() {
         const data = await response.json();
   
         // Construct the processed video URL if you store it locally or remotely
-        const videoUrl = `${window.location.origin}/assets/videos/processed/encoded_${data.file_name}`;
+        const videoUrl = `${window.location.origin}/assets/videos/processed/encoded_${data.id}_${data.file_name}`;
   
         // Convert duration seconds to readable time
         const formatDuration = (seconds) => {
@@ -49,6 +49,7 @@ export default function VideoAnalysis() {
         setVideoUrl(videoUrl);
   
         setVideoInfo({
+          Id: data.id,
           Name: data.file_name,
           Uploaded: new Date(data.upload_timestamp).toLocaleString(),
           Format: data.format,

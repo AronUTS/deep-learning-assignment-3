@@ -18,8 +18,8 @@ import random
 
 # Init directory and model vars
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "ml_models/final_model_fasterRcnn_resnet50_customhead_customdataset_lowdropout_epoch_8.pth")
-GDRIVE_FILE_ID = "1msshCMWch0CuzKc4uo_s2F4h4yVHHU4y"
+MODEL_PATH = os.path.join(BASE_DIR, "ml_models/model_01_20251702_final_epoch_20.pth")
+GDRIVE_FILE_ID = "1_I7ijKT_EgoU-GAHR5-0dfakSe_e07My"
 GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
 
 # If model does not exist, download it from gdrive
@@ -244,12 +244,12 @@ def process_video_worker_loop():
                     db.session.commit()
 
                 # Define output path and encode video for correct format for UI rendering
-                final_output_video_path = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/encoded_{task.file_name}")
+                final_output_video_path = os.path.join(os.path.dirname(BASE_DIR), f"static/assets/videos/processed/encoded_{task.id}_{task.file_name}")
                 run_ffmpeg_encoding(OUTPUT_VIDEO_PATH, final_output_video_path)
 
                 # Calculate metrics and save to DB
                 avg_conf = sum(pred_scores_all) / len(pred_scores_all) if pred_scores_all else 0.0
-                task.final_output_video_path = f"static/assets/videos/processed/encoded_{task.file_name}"
+                task.final_output_video_path = final_output_video_path
                 task.duration_seconds = duration_seconds
                 task.detected_objects = len(unique_ids)
                 task.average_confidence = avg_conf

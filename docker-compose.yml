@@ -5,12 +5,12 @@ services:
     build: .
     ports:
       - "5001:5001"
-    # runtime: nvidia
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
     environment:
       - FLASK_DEBUG=1
       - DATABASE_URL=postgresql://flask_user:flask_password@db:5432/flask_db
